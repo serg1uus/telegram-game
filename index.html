@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра Шляпа - Telegram Mini App</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen text-white">
+    <div class="container mx-auto px-4 py-6 max-w-md">
+        <!-- Главный экран -->
+        <div id="mainScreen" class="screen">
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl">
+                <div class="text-center mb-8">
+                    <div class="text-6xl mb-4">🎩</div>
+                    <h1 class="text-3xl font-bold mb-2">Игра Шляпа</h1>
+                    <p class="text-white/80">Объясняй слова и угадывай!</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <button onclick="startNewGame()" class="w-full bg-white text-purple-600 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-white/90 transition-all transform hover:scale-105">
+                        🎮 Новая игра
+                    </button>
+                    <button onclick="showRules()" class="w-full bg-white/20 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-white/30 transition-all">
+                        📖 Правила
+                    </button>
+                    <button onclick="showCategories()" class="w-full bg-white/20 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-white/30 transition-all">
+                        📝 Категории слов
+                    </button>
+                </div>
+                
+                <div class="mt-8 text-center text-white/60 text-sm">
+                    <p>Всего слов в базе: <span id="totalWords">0</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран правил -->
+        <div id="rulesScreen" class="screen hidden">
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl">
+                <h2 class="text-2xl font-bold mb-4">📖 Правила игры</h2>
+                <div class="space-y-3 text-white/90">
+                    <p>🎯 <strong>Цель:</strong> Объяснить как можно больше слов за отведенное время</p>
+                    <p>⏱️ <strong>Время:</strong> 60 секунд на раунд</p>
+                    <p>🚫 <strong>Нельзя:</strong> Использовать однокоренные слова и переводы</p>
+                    <p>✅ <strong>Можно:</strong> Использовать синонимы, описания, ассоциации</p>
+                    <p>⭐ <strong>Очки:</strong> +1 за угаданное слово, -1 за пропуск</p>
+                </div>
+                <button onclick="showMain()" class="w-full mt-6 bg-white/20 py-3 px-6 rounded-xl font-semibold hover:bg-white/30 transition-all">
+                    ← Назад
+                </button>
+            </div>
+        </div>
+
+        <!-- Экран категорий -->
+        <div id="categoriesScreen" class="screen hidden">
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl">
+                <h2 class="text-2xl font-bold mb-4">📝 Выберите категории</h2>
+                <div id="categoryList" class="space-y-2 mb-6">
+                    <!-- Категории будут добавлены через JS -->
+                </div>
+                <div class="space-y-3">
+                    <button onclick="saveCategories()" class="w-full bg-green-500 py-3 px-6 rounded-xl font-semibold hover:bg-green-600 transition-all">
+                        ✓ Сохранить
+                    </button>
+                    <button onclick="showMain()" class="w-full bg-white/20 py-3 px-6 rounded-xl font-semibold hover:bg-white/30 transition-all">
+                        ← Назад
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран настройки игры -->
+        <div id="setupScreen" class="screen hidden">
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl">
+                <h2 class="text-2xl font-bold mb-6">⚙️ Настройки игры</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-white/80 mb-2">Время раунда (сек)</label>
+                        <select id="roundTime" class="w-full bg-white/20 p-3 rounded-lg text-white">
+                            <option value="30">30 секунд</option>
+                            <option value="60" selected>60 секунд</option>
+                            <option value="90">90 секунд</option>
+                            <option value="120">120 секунд</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-white/80 mb-2">Сложность</label>
+                        <select id="difficulty" class="w-full bg-white/20 p-3 rounded-lg text-white">
+                            <option value="easy">Легко</option>
+                            <option value="medium" selected>Средне</option>
+                            <option value="hard">Сложно</option>
+                            <option value="mixed">Смешанная</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mt-6 space-y-3">
+                    <button onclick="startGame()" class="w-full bg-green-500 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-green-600 transition-all transform hover:scale-105">
+                        🚀 Начать игру
+                    </button>
+                    <button onclick="showMain()" class="w-full bg-white/20 py-3 px-6 rounded-xl font-semibold hover:bg-white/30 transition-all">
+                        ← Назад
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран игры -->
+        <div id="gameScreen" class="screen hidden">
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl">
+                <!-- Таймер и счет -->
+                <div class="flex justify-between items-center mb-6">
+                    <div class="text-center">
+                        <p class="text-white/60 text-sm">Время</p>
+                        <p class="text-3xl font-bold" id="timer">60</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-white/60 text-sm">Очки</p>
+                        <p class="text-3xl font-bold" id="score">0</p>
+                    </div>
+                </div>
+                
+                <!-- Карточка со словом -->
+                <div class="bg-white/20 rounded-xl p-8 mb-6 min-h-[200px] flex items-center justify-center">
+                    <div class="text-center">
+                        <p class="text-sm text-white/60 mb-2" id="wordCategory">Категория</p>
+                        <h3 class="text-4xl font-bold" id="currentWord">Нажмите Старт</h3>
+                        <p class="text-sm text-white/60 mt-2" id="wordHint" class="hidden"></p>
+                    </div>
+                </div>
+                
+                <!-- Кнопки управления -->
+                <div id="gameControls" class="space-y-3">
+                    <button onclick="toggleGame()" id="startBtn" class="w-full bg-green-500 py-4 px-6 rounded-xl font-semibold text-lg hover:bg-green-600 transition-all">
+                        ▶️ Старт
+                    </button>
+                    <div id="actionButtons" class="hidden grid grid-cols-2 gap-3">
+                        <button onclick="skipWord()" class="bg-red-500 py-4 px-6 rounded-xl font-semibold hover:bg-red-600 transition-all">
+                            ⏭️ Пропустить (-1)
+                        </button>
+                        <button onclick="guessWord()" class="bg-green-500 py-4 px-6 rounded-xl font-semibold hover:bg-green-600 transition-all">
+                            ✅ Угадал (+1)
+                        </button>
+                    </div>
+                    <button onclick="endGame()" class="w-full bg-white/20 py-3 px-6 rounded-xl font-semibold hover:bg-white/30 transition-all">
+                        🏁 Завершить игру
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Экран результатов -->
+        <div id="resultsScreen" class="screen hidden">
+            <div class="bg-white/10 backdrop-blur-lg rounded-2xl p-6 shadow-2xl">
+                <div class="text-center mb-6">
+                    <div class="text-6xl mb-4">🏆</div>
+                    <h2 class="text-3xl font-bold mb-2">Игра окончена!</h2>
+                </div>
+                
+                <div class="bg-white/20 rounded-xl p-6 mb-6">
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p class="text-white/60 text-sm">Очки</p>
+                            <p class="text-2xl font-bold" id="finalScore">0</p>
+                        </div>
+                        <div>
+                            <p class="text-white/60 text-sm">Угадано</p>
+                            <p class="text-2xl font-bold text-green-400" id="guessedWords">0</p>
+                        </div>
+                        <div>
+                            <p class="text-white/60 text-sm">Пропущено</p>
+                            <p class="text-2xl font-bold text-red-400" id="skippedWords">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-3">
+                    <button onclick="shareResults()" class="w-full bg-blue-500 py-3 px-6 rounded-xl font-semibold hover:bg-blue-600 transition-all">
+                        📤 Поделиться результатом
+                    </button>
+                    <button onclick="startNewGame()" class="w-full bg-green-500 py-3 px-6 rounded-xl font-semibold hover:bg-green-600 transition-all">
+                        🔄 Новая игра
+                    </button>
+                    <button onclick="showMain()" class="w-full bg-white/20 py-3 px-6 rounded-xl font-semibold hover:bg-white/30 transition-all">
+                        🏠 Главное меню
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        // База слов по категориям
+        const wordsDatabase = {
+            animals: {
+                name: "🐾 Животные",
+                easy: ["Кот", "Собака", "Слон", "Жираф", "Лев", "Тигр", "Медведь", "Волк", "Заяц", "Лиса"],
+                medium: ["Носорог", "Бегемот", "Пантера", "Гепард", "Антилопа", "Зебра", "Кенгуру", "Коала", "Панда", "Орангутан"],
+                hard: ["Капибара", "Окапи", "Тапир", "Вомбат", "Ехидна", "Утконос", "Лемур", "Сурикат", "Броненосец", "Муравьед"]
+            },
+            food: {
+                name: "🍕 Еда",
+                easy: ["Хлеб", "Молоко", "Яйцо", "Сыр", "Масло", "Суп", "Каша", "Салат", "Пицца", "Торт"],
+                medium: ["Лазанья", "Паэлья", "Ризотто", "Тирамису", "Круассан", "Фондю", "Гуляш", "Рататуй", "Карпаччо", "Брускетта"],
+                hard: ["Фуа-гра", "Конфи", "Бланманже", "Крембрюле", "Профитроли", "Киш", "Тартар", "Севиче", "Темпура", "Мисо"]
+            },
+            professions: {
+                name: "👔 Профессии",
+                easy: ["Врач", "Учитель", "Повар", "Водитель", "Продавец", "Полицейский", "Пожарный", "Строитель", "Художник", "Певец"],
+                medium: ["Архитектор", "Журналист", "Психолог", "Бухгалтер", "Дизайнер", "Программист", "Фотограф", "Переводчик", "Юрист", "Экономист"],
+                hard: ["Сомелье", "Кинолог", "Орнитолог", "Геммолог", "Этнограф", "Палеонтолог", "Криминалист", "Логист", "Копирайтер", "Таргетолог"]
+            },
+            movies: {
+                name: "🎬 Кино",
+                easy: ["Титаник", "Аватар", "Матрица", "Терминатор", "Гладиатор", "Леон", "Форсаж", "Такси", "Маска", "Один дома"],
+                medium: ["Начало", "Интерстеллар", "Престиж", "Бойцовский клуб", "Криминальное чтиво", "Зеленая миля", "Побег из Шоушенка", "Крестный отец", "Форрест Гамп", "Назад в будущее"],
+                hard: ["Мементо", "Малхолланд Драйв", "Донни Дарко", "Вечное сияние чистого разума", "Реквием по мечте", "Бердмэн", "Лобстер", "Догвилль", "Солярис", "Сталкер"]
+            },
+            tech: {
+                name: "💻 Технологии",
+                easy: ["Компьютер", "Телефон", "Интернет", "Принтер", "Монитор", "Клавиатура", "Мышь", "Наушники", "Камера", "Робот"],
+                medium: ["Процессор", "Видеокарта", "Оперативная память", "Жесткий диск", "Роутер", "Сервер", "Дрон", "Смартчасы", "Планшет", "Powerbank"],
+                hard: ["Блокчейн", "Нейросеть", "Квантовый компьютер", "Криптовалюта", "Токен", "API", "Фреймворк", "Алгоритм", "Кибербезопасность", "Датацентр"]
+            },
+            sports: {
+                name: "⚽ Спорт",
+                easy: ["Футбол", "Баскетбол", "Теннис", "Хоккей", "Бокс", "Плавание", "Бег", "Волейбол", "Гольф", "Шахматы"],
+                medium: ["Биатлон", "Регби", "Бадминтон", "Фехтование", "Гандбол", "Водное поло", "Керлинг", "Сквош", "Крикет", "Бейсбол"],
+                hard: ["Петанк", "Лакросс", "Поло", "Крокет", "Бобслей", "Скелетон", "Кайтсерфинг", "Паркур", "Слэклайн", "Флорбол"]
+            }
+        };
+
+        // Состояние игры
+        let gameState = {
+            currentWords: [],
+            currentWordIndex: 0,
+            score: 0,
+            guessed: 0,
+            skipped: 0,
+            timeLeft: 60,
+            isPlaying: false,
+            timer: null,
+            selectedCategories: ['animals', 'food', 'professions', 'movies'],
+            difficulty: 'medium',
+            roundTime: 60
+        };
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTotalWords();
+            initCategories();
+        });
+
+        // Функции навигации
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function showMain() {
+            showScreen('mainScreen');
+        }
+
+        function showRules() {
+            showScreen('rulesScreen');
+        }
+
+        function showCategories() {
+            showScreen('categoriesScreen');
+        }
+
+        function startNewGame() {
+            showScreen('setupScreen');
+        }
+
+        // Инициализация категорий
+        function initCategories() {
+            const categoryList = document.getElementById('categoryList');
+            categoryList.innerHTML = '';
+            
+            Object.entries(wordsDatabase).forEach(([key, category]) => {
+                const isChecked = gameState.selectedCategories.includes(key);
+                const div = document.createElement('div');
+                div.className = 'flex items-center p-3 bg-white/10 rounded-lg hover:bg-white/20 transition-all cursor-pointer';
+                div.innerHTML = `
+                    <input type="checkbox" id="cat-${key}" value="${key}" 
+                           class="w-5 h-5 mr-3" ${isChecked ? 'checked' : ''}>
+                    <label for="cat-${key}" class="flex-1 cursor-pointer">
+                        <span class="text-lg">${category.name}</span>
+                        <span class="text-sm text-white/60 ml-2">
+                            (${category.easy.length + category.medium.length + category.hard.length} слов)
+                        </span>
+                    </label>
+                `;
+                div.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = div.querySelector('input');
+                        checkbox.checked = !checkbox.checked;
+                    }
+                });
+                categoryList.appendChild(div);
+            });
+        }
+
+        // Сохранение выбранных категорий
+        function saveCategories() {
+            const checkboxes = document.querySelectorAll('#categoryList input[type="checkbox"]:checked');
+            gameState.selectedCategories = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (gameState.selectedCategories.length === 0) {
+                alert('Выберите хотя бы одну категорию!');
+                return;
+            }
+            
+            updateTotalWords();
+            showMain();
+        }
+
+        // Обновление счетчика слов
+        function updateTotalWords() {
+            let total = 0;
+            gameState.selectedCategories.forEach(cat => {
+                if (wordsDatabase[cat]) {
+                    const category = wordsDatabase[cat];
+                    total += category.easy.length + category.medium.length + category.hard.length;
+                }
+            });
+            document.getElementById('totalWords').textContent = total;
+        }
+
+        // Начало игры
+        function startGame() {
+            gameState.roundTime = parseInt(document.getElementById('roundTime').value);
+            gameState.difficulty = document.getElementById('difficulty').value;
+            gameState.timeLeft = gameState.roundTime;
+            gameState.score = 0;
+            gameState.guessed = 0;
+            gameState.skipped = 0;
+            gameState.currentWordIndex = 0;
+            
+            // Подготовка слов
+            prepareWords();
+            
+            // Обновление UI
+            document.getElementById('timer').textContent = gameState.timeLeft;
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('currentWord').textContent = 'Нажмите Старт';
+            document.getElementById('wordCategory').textContent = '';
+            document.getElementById('startBtn').textContent = '▶️ Старт';
+            document.getElementById('actionButtons').classList.add('hidden');
+            
+            showScreen('gameScreen');
+        }
+
+        // Подготовка списка слов
+        function prepareWords() {
+            gameState.currentWords = [];
+            
+            gameState.selectedCategories.forEach(catKey => {
+                const category = wordsDatabase[catKey];
+                if (!category) return;
+                
+                let words = [];
+                if (gameState.difficulty === 'easy') {
+                    words = category.easy;
+                } else if (gameState.difficulty === 'medium') {
+                    words = category.medium;
+                } else if (gameState.difficulty === 'hard') {
+                    words = category.hard;
+                } else { // mixed
+                    words = [...category.easy, ...category.medium, ...category.hard];
+                }
+                
+                words.forEach(word => {
+                    gameState.currentWords.push({
+                        word: word,
+                        category: category.name
+                    });
+                });
+            });
+            
+            // Перемешивание слов
+            gameState.currentWords = shuffleArray(gameState.currentWords);
+        }
+
+        // Перемешивание массива
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        // Управление игрой
+        function toggleGame() {
+            if (!gameState.isPlaying) {
+                startRound();
+            } else {
+                pauseRound();
+            }
+        }
+
+        function startRound() {
+            gameState.isPlaying = true;
+            document.getElementById('startBtn').textContent = '⏸️ Пауза';
+            document.getElementById('actionButtons').classList.remove('hidden');
+            
+            showNextWord();
+            startTimer();
+        }
+
+        function pauseRound() {
+            gameState.isPlaying = false;
+            document.getElementById('startBtn').textContent = '▶️ Продолжить';
+            stopTimer();
+        }
+
+        function startTimer() {
+            gameState.timer = setInterval(() => {
+                gameState.timeLeft--;
+                document.getElementById('timer').textContent = gameState.timeLeft;
+                
+                if (gameState.timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (gameState.timer) {
+                clearInterval(gameState.timer);
+                gameState.timer = null;
+            }
+        }
+
+        function showNextWord() {
+            if (gameState.currentWordIndex >= gameState.currentWords.length) {
+                gameState.currentWordIndex = 0;
+                gameState.currentWords = shuffleArray(gameState.currentWords);
+            }
+            
+            const wordData = gameState.currentWords[gameState.currentWordIndex];
+            document.getElementById('currentWord').textContent = wordData.word;
+            document.getElementById('wordCategory').textContent = wordData.category;
+        }
+
+        function guessWord() {
+            if (!gameState.isPlaying) return;
+            
+            gameState.score++;
+            gameState.guessed++;
+            gameState.currentWordIndex++;
+            
+            document.getElementById('score').textContent = gameState.score;
+            
+            // Анимация
+            const wordCard = document.getElementById('currentWord').parentElement.parentElement;
+            wordCard.classList.add('bg-green-500/30');
+            setTimeout(() => {
+                wordCard.classList.remove('bg-green-500/30');
+            }, 300);
+            
+            showNextWord();
+        }
+
+        function skipWord() {
+            if (!gameState.isPlaying) return;
+            
+            gameState.score--;
+            gameState.skipped++;
+            gameState.currentWordIndex++;
+            
+            document.getElementById('score').textContent = gameState.score;
+            
+            // Анимация
+            const wordCard = document.getElementById('currentWord').parentElement.parentElement;
+            wordCard.classList.add('bg-red-500/30');
+            setTimeout(() => {
+                wordCard.classList.remove('bg-red-500/30');
+            }, 300);
+            
+            showNextWord();
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            stopTimer();
+            
+            // Показ результатов
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('guessedWords').textContent = gameState.guessed;
+            document.getElementById('skippedWords').textContent = gameState.skipped;
+            
+            showScreen('resultsScreen');
+            
+            // Вибрация (если поддерживается)
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        }
+
+        function shareResults() {
+            const text = `🎩 Игра Шляпа\n🏆 Мой результат: ${gameState.score} очков\n✅ Угадано: ${gameState.guessed}\n❌ Пропущено: ${gameState.skipped}\n\nПопробуй побить мой рекорд!`;
+            
+            if (tg && tg.MainButton) {
+                tg.MainButton.setText('Поделиться');
+                tg.MainButton.show();
+                tg.MainButton.onClick(() => {
+                    tg.sendData(JSON.stringify({
+                        action: 'share',
+                        score: gameState.score,
+                        guessed: gameState.guessed,
+                        skipped: gameState.skipped
+                    }));
+                });
+            } else if (navigator.share) {
+                navigator.share({
+                    title: 'Игра Шляпа - Мой результат',
+                    text: text
+                });
+            } else {
+                navigator.clipboard.writeText(text);
+                alert('Результат скопирован в буфер обмена!');
+            }
+        }
+
+        // Адаптация под Telegram
+        if (tg) {
+            tg.BackButton.onClick(() => {
+                const currentScreen = document.querySelector('.screen:not(.hidden)');
+                if (currentScreen.id !== 'mainScreen') {
+                    showMain();
+                }
+            });
+            
+            // Настройка темы
+            document.body.style.backgroundColor = tg.themeParams.bg_color || '#667eea';
+        }
+    </script>
+</body>
+</html>
